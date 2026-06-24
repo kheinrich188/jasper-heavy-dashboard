@@ -291,6 +291,10 @@ app.get("/api/dashboard", async (_req, res) => {
   }
 });
 
+app.get(/^\/dashboard(?:\/.*)?$/, (_req, res) => {
+  res.sendFile(path.join(__dirname, "public", "index.html"));
+});
+
 app.use(express.static(path.join(__dirname, "public")));
 
 app.listen(PORT, () => {
