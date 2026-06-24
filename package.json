@@ -1,0 +1,25 @@
+{
+  "name": "jasper-heavy-dashboard",
+  "version": "1.0.0",
+  "description": "Responsive dashboard for Jasper cat wheel telemetry in InfluxDB",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "test": "echo \"No automated tests configured\""
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@influxdata/influxdb-client": "^1.35.0",
+    "dotenv": "^17.2.0",
+    "express": "^5.1.0"
+  },
+  "dependencies": {
+    "@influxdata/influxdb-client": "^1.35.0",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1"
+  }
+}

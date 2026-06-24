@@ -1,0 +1,142 @@
+:root {
+  color-scheme: dark;
+  --bg: #111317;
+  --bg-soft: #171a20;
+  --panel: #1d2128;
+  --text: #f3f4f6;
+  --muted: #9ba3af;
+  --accent: #5ec4ff;
+  --accent-2: #8e9cff;
+  --ok: #7de0a0;
+  --border: #2a3039;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.app {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 1rem 1rem 1.5rem;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.9rem;
+}
+
+h1 {
+  margin: 0;
+  font-size: clamp(1.4rem, 2vw, 2rem);
+}
+
+p {
+  margin: 0.25rem 0 0;
+  color: var(--muted);
+}
+
+button {
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  padding: 0.55rem 1rem;
+  font-weight: 600;
+  font-size: 0.92rem;
+  cursor: pointer;
+  background: #202730;
+  color: var(--text);
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.card,
+.panel {
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.85rem;
+}
+
+.card h3 {
+  margin: 0 0 0.4rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.card strong {
+  font-size: 1.35rem;
+  line-height: 1.25;
+}
+
+.charts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 0.75rem;
+}
+
+.panel h2 {
+  margin: 0 0 0.7rem;
+  font-size: 0.98rem;
+  font-weight: 600;
+}
+
+.chart-wrap {
+  position: relative;
+  width: 100%;
+  height: clamp(190px, 26vh, 260px);
+}
+
+canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.sessions {
+  margin-top: 0.75rem;
+}
+
+.session-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.75rem;
+}
+
+.session-item {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.65rem;
+}
+
+.session-item .meta {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.session-item .score {
+  color: var(--ok);
+  font-weight: 700;
+}
+
+@media (max-width: 700px) {
+  .topbar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
