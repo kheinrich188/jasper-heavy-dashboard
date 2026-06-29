@@ -17,7 +17,9 @@ Responsive web dashboard for the `jasper-heavy` cat wheel telemetry in InfluxDB.
 
 ## Included Dashboards
 
-- KPI cards: distance, rotations, top speed, zoomies, inactivity, athlete score
+- KPI cards with selectable periods: today, yesterday, week, month, total
+- Period overview table with cross-period comparisons
+- Monthly highlights report (best day, fastest session, longest session, longest distance session, most active hour)
 - 24h speed bursts
 - 30-day distance trend
 - zoomies trend

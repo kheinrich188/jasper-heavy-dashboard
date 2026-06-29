@@ -1,12 +1,35 @@
 const cardsEl = document.getElementById("cards");
 const sessionsEl = document.getElementById("sessions");
 const refreshBtn = document.getElementById("refreshBtn");
+const periodSelectorEl = document.getElementById("periodSelector");
+const periodSummaryEl = document.getElementById("periodSummary");
+const monthlyReportEl = document.getElementById("monthlyReport");
 
 const chartRefs = {};
 const numberFormatter = new Intl.NumberFormat("de-DE", { maximumFractionDigits: 1 });
 
+const periodOrder = ["today", "yesterday", "week", "month", "total"];
+const periodLabels = {
+  today: "Heute",
+  yesterday: "Gestern",
+  week: "Woche",
+  month: "Monat",
+  total: "Gesamt",
+};
+
+let selectedPeriod = "today";
+let dashboardData = null;
+
 function fmt(value, unit = "") {
   return `${numberFormatter.format(Number(value || 0))}${unit}`;
+}
+
+function formatDistance(metersInput) {
+  const meters = Number(metersInput || 0);
+  if (Math.abs(meters) >= 1000) {
+    return `${numberFormatter.format(meters / 1000)} km`;
+  }
+  return `${numberFormatter.format(meters)} m`;
 }
 
 function formatDuration(secondsInput) {
@@ -69,17 +92,33 @@ function makeChartOptions() {
   };
 }
 
-function buildCards(overview) {
+function buildPeriodSelector(periods) {
+  periodSelectorEl.innerHTML = "";
+  periodOrder.forEach((periodKey) => {
+    if (!periods[periodKey]) return;
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = `period-btn${selectedPeriod === periodKey ? " active" : ""}`;
+    button.textContent = periodLabels[periodKey];
+    button.addEventListener("click", () => {
+      selectedPeriod = periodKey;
+      renderPeriodDependentViews();
+    });
+    periodSelectorEl.appendChild(button);
+  });
+}
+
+function buildCards(periodKpis, inactivitySeconds) {
   cardsEl.innerHTML = "";
   const cards = [
-    ["Distanz heute", fmt(overview.dailyDistanceM, " m")],
-    ["Umdrehungen heute", fmt(overview.dailyRotations)],
-    ["Top-Speed (30 Tage)", fmt(overview.topSpeedKmh, " km/h")],
-    ["Zoomies heute", fmt(overview.dailyZoomies)],
-    ["Zoomies Index", fmt(overview.dailyZoomiesIndex)],
-    ["Gesamtaktivität heute", formatDuration(overview.dailyActiveSeconds)],
-    ["Inaktiv seit", formatDuration(overview.inactivitySeconds)],
-    ["Score", `${overview.catAthleteScore}/100`],
+    ["Distanz", formatDistance(periodKpis.distanceM)],
+    ["Umdrehungen", fmt(periodKpis.rotations)],
+    ["Aktivzeit", formatDuration(periodKpis.activeSeconds)],
+    ["Sessions", fmt(periodKpis.sessionsCount)],
+    ["Zoomies", fmt(periodKpis.zoomies)],
+    ["Top-Speed", fmt(periodKpis.topSpeedKmh, " km/h")],
+    ["Score", `${periodKpis.catAthleteScore}/100`],
+    ["Inaktiv seit", formatDuration(inactivitySeconds)],
   ];
 
   cards.forEach(([label, value]) => {
@@ -88,6 +127,86 @@ function buildCards(overview) {
     card.innerHTML = `<h3>${label}</h3><strong>${value}</strong>`;
     cardsEl.appendChild(card);
   });
+}
+
+function buildPeriodSummary(periods) {
+  const rows = periodOrder
+    .filter((key) => periods[key])
+    .map((key) => {
+      const p = periods[key];
+      return `
+        <tr>
+          <td>${periodLabels[key]}</td>
+          <td>${formatDistance(p.distanceM)}</td>
+          <td>${fmt(p.rotations)}</td>
+          <td>${formatDuration(p.activeSeconds)}</td>
+          <td>${fmt(p.zoomies)}</td>
+          <td>${fmt(p.topSpeedKmh, " km/h")}</td>
+        </tr>
+      `;
+    })
+    .join("");
+
+  periodSummaryEl.innerHTML = `
+    <table class="period-table">
+      <thead>
+        <tr>
+          <th>Zeitraum</th>
+          <th>Distanz</th>
+          <th>Umdrehungen</th>
+          <th>Aktivzeit</th>
+          <th>Zoomies</th>
+          <th>Top-Speed</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+  `;
+}
+
+function buildMonthlyReport(report) {
+  const fmtDay = (day) => (day ? new Date(day).toLocaleDateString("de-DE") : "-");
+  const fmtSessionTime = (iso) => (iso ? new Date(iso).toLocaleString("de-DE") : "-");
+  monthlyReportEl.innerHTML = `
+    <div class="report-grid">
+      <div class="report-item">
+        <div class="label">Zeitraum</div>
+        <strong>${fmtDay(report.range.start)} - ${fmtDay(report.range.stop)}</strong>
+      </div>
+      <div class="report-item">
+        <div class="label">Gesamtdistanz</div>
+        <strong>${formatDistance(report.totals.totalDistanceM)}</strong>
+      </div>
+      <div class="report-item">
+        <div class="label">Gesamtaktivität</div>
+        <strong>${formatDuration(report.totals.activitySeconds)}</strong>
+      </div>
+      <div class="report-item">
+        <div class="label">Sessions gesamt</div>
+        <strong>${report.totals.sessions}</strong>
+      </div>
+      <div class="report-item">
+        <div class="label">Bester Tag</div>
+        <strong>${report.highlights.bestDay ? `${fmtDay(report.highlights.bestDay.day)} (${formatDistance(report.highlights.bestDay.distanceM)})` : "-"}</strong>
+      </div>
+      <div class="report-item">
+        <div class="label">Schnellste Session</div>
+        <strong>${report.highlights.fastestSession ? `${fmt(report.highlights.fastestSession.maxKmh, " km/h")} (${fmtSessionTime(report.highlights.fastestSession.time)})` : "-"}</strong>
+      </div>
+      <div class="report-item">
+        <div class="label">Längste Session</div>
+        <strong>${report.highlights.longestSession ? `${formatDuration(report.highlights.longestSession.durationS)} (${fmtSessionTime(report.highlights.longestSession.time)})` : "-"}</strong>
+      </div>
+      <div class="report-item">
+        <div class="label">Längste Distanz in einer Session</div>
+        <strong>${report.highlights.longestDistanceSession ? `${formatDistance(report.highlights.longestDistanceSession.distanceM)} (${fmtSessionTime(report.highlights.longestDistanceSession.time)})` : "-"}</strong>
+      </div>
+      <div class="report-item">
+        <div class="label">Aktivste Stunde</div>
+        <strong>${report.highlights.mostActiveHour ? `${String(report.highlights.mostActiveHour.hour).padStart(2, "0")}:00` : "-"}</strong>
+      </div>
+    </div>
+  `;
 }
 
 function upsertChart(id, config) {
@@ -122,12 +241,20 @@ function buildCharts(series) {
     },
   });
 
+  const distanceValuesMeters = series.distanceSeries.map((p) => p.value);
+  const useKilometers = Math.max(...distanceValuesMeters, 0) >= 1000;
+  const distanceScaleDivisor = useKilometers ? 1000 : 1;
+
   upsertChart("distanceChart", {
     type: "bar",
     data: {
       labels: series.distanceSeries.map((p) => dayLabel(p.day)),
       datasets: [
-        { label: "Meter", data: series.distanceSeries.map((p) => p.value), backgroundColor: "#7de0a099" },
+        {
+          label: useKilometers ? "Kilometer" : "Meter",
+          data: distanceValuesMeters.map((v) => v / distanceScaleDivisor),
+          backgroundColor: "#7de0a099",
+        },
       ],
     },
   });
@@ -179,7 +306,7 @@ function buildSessions(sessions) {
     item.innerHTML = `
       <div><strong>Session ${s.sessionId || "-"}</strong></div>
       <div class="meta">${new Date(s.time).toLocaleString("de-DE")}</div>
-      <div>${fmt(s.distanceM, " m")} in ${formatDuration(s.durationS)}</div>
+      <div>${formatDistance(s.distanceM)} in ${formatDuration(s.durationS)}</div>
       <div>Spitze: ${fmt(s.maxKmh, " km/h")}</div>
       <div class="score">${hype}</div>
     `;
@@ -190,24 +317,38 @@ function buildSessions(sessions) {
   sessionsEl.appendChild(list);
 }
 
+function renderPeriodDependentViews() {
+  if (!dashboardData) return;
+  buildPeriodSelector(dashboardData.periods);
+  buildCards(dashboardData.periods[selectedPeriod], dashboardData.inactivitySeconds);
+}
+
 async function loadDashboard() {
   const response = await fetch("/api/dashboard");
   const data = await response.json();
   if (!response.ok) {
     throw new Error(data.error || "Dashboard konnte nicht geladen werden.");
   }
-  buildCards(data.overview);
+
+  dashboardData = data;
+  selectedPeriod = data.selectedPeriod || "today";
+
+  renderPeriodDependentViews();
+  buildPeriodSummary(data.periods);
+  buildMonthlyReport(data.monthlyReport);
   buildCharts(data.series);
   buildSessions(data.recentSessions);
 }
 
 refreshBtn.addEventListener("click", () => {
   refreshBtn.disabled = true;
-  loadDashboard().catch((error) => {
-    sessionsEl.textContent = error.message;
-  }).finally(() => {
-    refreshBtn.disabled = false;
-  });
+  loadDashboard()
+    .catch((error) => {
+      sessionsEl.textContent = error.message;
+    })
+    .finally(() => {
+      refreshBtn.disabled = false;
+    });
 });
 
 loadDashboard().catch((error) => {

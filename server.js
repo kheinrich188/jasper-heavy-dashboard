@@ -53,31 +53,43 @@ async function runRowsQuery(query) {
   return queryApi.collectRows(query);
 }
 
-async function fetchLatestDailyCounters() {
-  const query = `
-from(bucket: "${influxConfig.bucket}")
-  |> range(start: -2d)
-  |> filter(fn: (r) => r._measurement == "cat_wheel")
-  ${tagFilter}
-  |> filter(fn: (r) => r._field == "daily_distance_m" or r._field == "daily_rotations" or r._field == "daily_zoomies" or r._field == "daily_zoomies_index")
-  |> last()
-  |> pivot(rowKey:["_time"], columnKey:["_field"], valueColumn:"_value")
-  |> sort(columns: ["_time"], desc: true)
-  |> limit(n: 1)
-`;
-  const [row] = await runRowsQuery(query);
+function startOfDay(date) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+function startOfMonth(date) {
+  return new Date(date.getFullYear(), date.getMonth(), 1);
+}
+
+function getPeriodRanges(now = new Date()) {
+  const todayStart = startOfDay(now);
+  const yesterdayStart = new Date(todayStart);
+  yesterdayStart.setDate(yesterdayStart.getDate() - 1);
+  const weekStart = new Date(todayStart);
+  weekStart.setDate(weekStart.getDate() - 6);
+  const monthStart = startOfMonth(now);
+  const totalStart = new Date("1970-01-01T00:00:00.000Z");
+  const lastMonthStart = new Date(monthStart.getFullYear(), monthStart.getMonth() - 1, 1);
+  const lastMonthEnd = monthStart;
+
   return {
-    dailyDistanceM: parseNum(row?.daily_distance_m),
-    dailyRotations: parseNum(row?.daily_rotations),
-    dailyZoomies: parseNum(row?.daily_zoomies),
-    dailyZoomiesIndex: parseNum(row?.daily_zoomies_index),
+    today: { start: todayStart, stop: now },
+    yesterday: { start: yesterdayStart, stop: todayStart },
+    week: { start: weekStart, stop: now },
+    month: { start: monthStart, stop: now },
+    total: { start: totalStart, stop: now },
+    lastMonth: { start: lastMonthStart, stop: lastMonthEnd },
   };
 }
 
-async function fetchTopSpeed() {
+function fluxRange(start, stop) {
+  return `|> range(start: time(v: "${start.toISOString()}"), stop: time(v: "${stop.toISOString()}"))`;
+}
+
+async function fetchMaxSpeedInRange(start, stop) {
   const query = `
 from(bucket: "${influxConfig.bucket}")
-  |> range(start: -30d)
+  ${fluxRange(start, stop)}
   |> filter(fn: (r) => r._measurement == "cat_wheel")
   ${tagFilter}
   |> filter(fn: (r) => r._field == "speed_kmh")
@@ -122,23 +134,141 @@ from(bucket: "${influxConfig.bucket}")
   return Math.max(inactivityFromField, inactivityFromLastActivity);
 }
 
-async function fetchTodayActivitySeconds() {
+async function fetchActivitySecondsInRange(start, stop) {
   const query = `
-import "date"
-
 from(bucket: "${influxConfig.bucket}")
-  |> range(start: -2d)
+  ${fluxRange(start, stop)}
   |> filter(fn: (r) => r._measurement == "cat_wheel")
   ${tagFilter}
   |> filter(fn: (r) => r._field == "speed_kmh")
   |> aggregateWindow(every: 1m, fn: max, createEmpty: false)
   |> filter(fn: (r) => r._value > 0.2)
-  |> filter(fn: (r) => date.truncate(t: r._time, unit: 1d) == date.truncate(t: now(), unit: 1d))
   |> count(column: "_value")
   |> keep(columns: ["_value"])
 `;
   const [row] = await runRowsQuery(query);
   return Math.max(0, parseNum(row?._value) * 60);
+}
+
+async function fetchSessionsInRange(start, stop, limit = null) {
+  const limitPart = Number.isFinite(limit) ? `|> limit(n: ${Math.max(1, Math.floor(limit))})` : "";
+  const query = `
+from(bucket: "${influxConfig.bucket}")
+  ${fluxRange(start, stop)}
+  |> filter(fn: (r) => r._measurement == "cat_wheel")
+  ${tagFilter}
+  |> filter(fn: (r) => r._field == "session_ended" or r._field == "session_id" or r._field == "session_duration_s" or r._field == "session_distance_m" or r._field == "session_max_kmh" or r._field == "session_rotations" or r._field == "zoomies")
+  |> pivot(rowKey:["_time"], columnKey:["_field"], valueColumn:"_value")
+  |> filter(fn: (r) => exists r.session_ended and r.session_ended == 1)
+  |> keep(columns: ["_time", "session_id", "session_duration_s", "session_distance_m", "session_max_kmh", "session_rotations", "zoomies"])
+  |> sort(columns: ["_time"], desc: true)
+  ${limitPart}
+`;
+  const rows = await runRowsQuery(query);
+  return rows.map((r) => ({
+    time: r._time,
+    sessionId: String(r.session_id || ""),
+    durationS: parseNum(r.session_duration_s),
+    distanceM: parseNum(r.session_distance_m),
+    maxKmh: parseNum(r.session_max_kmh),
+    rotations: parseNum(r.session_rotations),
+    zoomies: parseNum(r.zoomies),
+  }));
+}
+
+async function fetchMostActiveHourInRange(start, stop) {
+  const query = `
+import "date"
+
+from(bucket: "${influxConfig.bucket}")
+  ${fluxRange(start, stop)}
+  |> filter(fn: (r) => r._measurement == "cat_wheel")
+  ${tagFilter}
+  |> filter(fn: (r) => r._field == "speed_kmh")
+  |> filter(fn: (r) => r._value > 0.2)
+  |> map(fn: (r) => ({ r with hour: date.hour(t: r._time) }))
+  |> group(columns: ["hour"])
+  |> count(column: "_value")
+  |> keep(columns: ["hour", "_value"])
+  |> sort(columns: ["_value"], desc: true)
+  |> limit(n: 1)
+`;
+  const [row] = await runRowsQuery(query);
+  return row ? { hour: parseNum(row.hour), samples: parseNum(row._value) } : null;
+}
+
+async function fetchPeriodKpis(start, stop) {
+  const [sessions, topSpeedKmh, activeSeconds] = await Promise.all([
+    fetchSessionsInRange(start, stop),
+    fetchMaxSpeedInRange(start, stop),
+    fetchActivitySecondsInRange(start, stop),
+  ]);
+
+  const distanceM = sessions.reduce((sum, s) => sum + s.distanceM, 0);
+  const rotations = sessions.reduce((sum, s) => sum + s.rotations, 0);
+  const zoomies = sessions.reduce((sum, s) => sum + (s.zoomies >= 1 ? 1 : 0), 0);
+  const sessionsCount = sessions.length;
+  const catAthleteScore = Math.round(Math.min(100, distanceM / 2 + topSpeedKmh * 10 + zoomies * 8));
+
+  return {
+    distanceM,
+    rotations,
+    topSpeedKmh,
+    zoomies,
+    activeSeconds,
+    sessionsCount,
+    catAthleteScore,
+  };
+}
+
+async function fetchLastMonthReport(lastMonthRange) {
+  const [sessions, activitySeconds, mostActiveHour] = await Promise.all([
+    fetchSessionsInRange(lastMonthRange.start, lastMonthRange.stop),
+    fetchActivitySecondsInRange(lastMonthRange.start, lastMonthRange.stop),
+    fetchMostActiveHourInRange(lastMonthRange.start, lastMonthRange.stop),
+  ]);
+
+  const totalDistanceM = sessions.reduce((sum, s) => sum + s.distanceM, 0);
+  const totalRotations = sessions.reduce((sum, s) => sum + s.rotations, 0);
+  const totalZoomies = sessions.reduce((sum, s) => sum + (s.zoomies >= 1 ? 1 : 0), 0);
+  const fastestSession = sessions.reduce((best, s) => (s.maxKmh > (best?.maxKmh || 0) ? s : best), null);
+  const longestSession = sessions.reduce((best, s) => (s.durationS > (best?.durationS || 0) ? s : best), null);
+  const longestDistanceSession = sessions.reduce((best, s) => (s.distanceM > (best?.distanceM || 0) ? s : best), null);
+
+  const sessionsByDay = sessions.reduce((acc, s) => {
+    const day = new Date(s.time).toISOString().slice(0, 10);
+    acc[day] = (acc[day] || 0) + s.distanceM;
+    return acc;
+  }, {});
+
+  const bestDayEntry = Object.entries(sessionsByDay).sort((a, b) => b[1] - a[1])[0] || null;
+
+  return {
+    range: {
+      start: lastMonthRange.start.toISOString(),
+      stop: lastMonthRange.stop.toISOString(),
+    },
+    totals: {
+      sessions: sessions.length,
+      totalDistanceM,
+      totalRotations,
+      totalZoomies,
+      activitySeconds,
+    },
+    highlights: {
+      bestDay: bestDayEntry ? { day: bestDayEntry[0], distanceM: bestDayEntry[1] } : null,
+      fastestSession: fastestSession
+        ? { time: fastestSession.time, sessionId: fastestSession.sessionId, maxKmh: fastestSession.maxKmh }
+        : null,
+      longestSession: longestSession
+        ? { time: longestSession.time, sessionId: longestSession.sessionId, durationS: longestSession.durationS }
+        : null,
+      longestDistanceSession: longestDistanceSession
+        ? { time: longestDistanceSession.time, sessionId: longestDistanceSession.sessionId, distanceM: longestDistanceSession.distanceM }
+        : null,
+      mostActiveHour,
+    },
+  };
 }
 
 async function fetchSpeedSeries() {
@@ -250,38 +380,41 @@ app.get("/api/dashboard", async (_req, res) => {
   }
 
   try {
-    const [daily, topSpeedKmh, inactivitySeconds, dailyActiveSeconds, speedSeries, distanceSeries, zoomiesSeries, activityByHour, sessions] =
+    const ranges = getPeriodRanges();
+    const [inactivitySeconds, speedSeries, distanceSeries, zoomiesSeries, activityByHour, recentSessions, periodToday, periodYesterday, periodWeek, periodMonth, periodTotal, lastMonthReport] =
       await Promise.all([
-        fetchLatestDailyCounters(),
-        fetchTopSpeed(),
         fetchLastInactivitySeconds(),
-        fetchTodayActivitySeconds(),
         fetchSpeedSeries(),
         fetchDailyDistanceSeries(),
         fetchZoomiesSeries(),
         fetchActivityByHour(),
-        fetchRecentSessions(),
+        fetchSessionsInRange(new Date(Date.now() - 1000 * 60 * 60 * 24 * 30), new Date(), 8),
+        fetchPeriodKpis(ranges.today.start, ranges.today.stop),
+        fetchPeriodKpis(ranges.yesterday.start, ranges.yesterday.stop),
+        fetchPeriodKpis(ranges.week.start, ranges.week.stop),
+        fetchPeriodKpis(ranges.month.start, ranges.month.stop),
+        fetchPeriodKpis(ranges.total.start, ranges.total.stop),
+        fetchLastMonthReport(ranges.lastMonth),
       ]);
 
-    const catAthleteScore = Math.round(
-      Math.min(100, daily.dailyDistanceM / 2 + topSpeedKmh * 10 + daily.dailyZoomies * 8)
-    );
-
     res.json({
-      overview: {
-        ...daily,
-        topSpeedKmh,
-        inactivitySeconds,
-        dailyActiveSeconds,
-        catAthleteScore,
+      selectedPeriod: "today",
+      periods: {
+        today: periodToday,
+        yesterday: periodYesterday,
+        week: periodWeek,
+        month: periodMonth,
+        total: periodTotal,
       },
+      inactivitySeconds,
       series: {
         speedSeries,
         distanceSeries,
         zoomiesSeries,
         activityByHour,
       },
-      recentSessions: sessions,
+      recentSessions,
+      monthlyReport: lastMonthReport,
       generatedAt: new Date().toISOString(),
     });
   } catch (error) {
