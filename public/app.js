@@ -148,19 +148,21 @@ function buildPeriodSummary(periods) {
     .join("");
 
   periodSummaryEl.innerHTML = `
-    <table class="period-table">
-      <thead>
-        <tr>
-          <th>Zeitraum</th>
-          <th>Distanz</th>
-          <th>Umdrehungen</th>
-          <th>Aktivzeit</th>
-          <th>Zoomies</th>
-          <th>Top-Speed</th>
-        </tr>
-      </thead>
-      <tbody>${rows}</tbody>
-    </table>
+    <div class="table-scroll">
+      <table class="period-table">
+        <thead>
+          <tr>
+            <th>Zeitraum</th>
+            <th>Distanz</th>
+            <th>Umdrehungen</th>
+            <th>Aktivzeit</th>
+            <th>Zoomies</th>
+            <th>Top-Speed</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
   `;
 }
 
