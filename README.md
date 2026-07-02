@@ -1,6 +1,6 @@
 # Jasper Heavy Dashboard
 
-Responsive web dashboard for the `jasper-heavy` cat wheel telemetry in InfluxDB.
+Responsive premium dashboard for the `jasper-heavy` cat wheel telemetry in InfluxDB.
 
 ## Setup
 
@@ -15,13 +15,33 @@ Responsive web dashboard for the `jasper-heavy` cat wheel telemetry in InfluxDB.
    ```
 4. Open `http://localhost:3000`.
 
-## Included Dashboards
+## UI Architecture
 
-- KPI cards with selectable periods: today, yesterday, week, month, total
-- Period overview table with cross-period comparisons
-- Monthly highlights report (best day, fastest session, longest session, longest distance session, most active hour)
-- 24h speed bursts
-- 30-day distance trend
-- zoomies trend
-- activity distribution by hour
-- recent finished sessions with performance labels
+The dashboard is organized as a fitness-style story flow:
+
+1. Hero section (main distance focus + activity rings + status)
+2. Period selector (Heute, Gestern, Woche, Monat, Gesamt)
+3. 4 primary KPI cards (Distanz, Aktivzeit, Zoomies, Top-Speed)
+4. Main chart area (large 24h activity chart + secondary charts)
+5. Recent sessions card grid
+6. Period comparison cards
+7. Monthly highlight cards
+
+## Included Views
+
+- Selectable period KPIs: today, yesterday, week, month, total
+- Hero status with distance focus and activity rings
+- 24h speed activity chart (main)
+- Daily distance trend (30 days)
+- Daily zoomies trend
+- Activity distribution by hour
+- Session performance cards
+- Period comparison cards
+- Monthly highlights (best day, fastest session, longest session, longest distance, most active hour, session count)
+
+## Frontend Stack
+
+- Express static frontend (`public/`)
+- Chart.js via CDN
+- Font Awesome Free via CDN
+- Custom CSS design system (dark pastel palette, responsive layout, micro animations)

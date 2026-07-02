@@ -9,67 +9,72 @@
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
     <link rel="manifest" href="/site.webmanifest" />
     <link rel="stylesheet" href="/styles.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3"></script>
   </head>
   <body>
     <div class="app">
       <header class="topbar">
         <div>
-          <h1>Jaspers Wheel Analytics</h1>
+          <h1>Jasper</h1>
+          <p class="headline-sub">Aktivitätsübersicht</p>
           <p class="subtitle">
-            Das Performance-Dashboard für das
+            Alle Laufdaten auf einen Blick für das
             <a href="https://www.elmato.de" target="_blank" rel="noopener noreferrer">Elmato Katzenlaufrad</a>
           </p>
         </div>
         <button id="refreshBtn">Aktualisieren</button>
       </header>
 
-      <section class="panel period-panel">
-        <h2>Zeitraum</h2>
+      <section class="hero panel" id="heroSection">
+        <div id="hero"></div>
+      </section>
+
+      <section class="period-strip">
         <div id="periodSelector" class="period-selector"></div>
       </section>
 
       <section class="cards" id="cards"></section>
 
       <section class="charts">
-        <article class="panel">
+        <article class="panel chart-panel chart-main">
           <h2>Tempo-Spitzen der letzten 24h (km/h)</h2>
-          <div class="chart-wrap">
+          <div class="chart-wrap chart-wrap-main">
             <canvas id="speedChart"></canvas>
           </div>
         </article>
-        <article class="panel">
+        <article class="panel chart-panel chart-hours">
+          <h2>Aktivste Stunden</h2>
+          <div class="chart-wrap chart-wrap-small">
+            <canvas id="hourChart"></canvas>
+          </div>
+        </article>
+        <article class="panel chart-panel">
           <h2>Tagesdistanz (letzte 30 Tage)</h2>
-          <div class="chart-wrap">
+          <div class="chart-wrap chart-wrap-small">
             <canvas id="distanceChart"></canvas>
           </div>
         </article>
-        <article class="panel">
+        <article class="panel chart-panel">
           <h2>Zoomies pro Tag</h2>
-          <div class="chart-wrap">
+          <div class="chart-wrap chart-wrap-small">
             <canvas id="zoomiesChart"></canvas>
-          </div>
-        </article>
-        <article class="panel">
-          <h2>Aktivste Stunden</h2>
-          <div class="chart-wrap">
-            <canvas id="hourChart"></canvas>
           </div>
         </article>
       </section>
 
-      <section class="panel sessions">
+      <section class="panel sessions" id="sessionsSection">
         <h2>Letzte Sessions</h2>
         <div id="sessions"></div>
       </section>
 
-      <section class="panel">
-        <h2>Zeitraum-Überblick</h2>
+      <section class="panel" id="periodSummarySection">
+        <h2>Zeitraumvergleich</h2>
         <div id="periodSummary"></div>
       </section>
 
-      <section class="panel report">
-        <h2>Highlight-Report (letzter Monat)</h2>
+      <section class="panel report" id="monthlyReportSection">
+        <h2>Highlights (letzter Monat)</h2>
         <div id="monthlyReport"></div>
       </section>
     </div>
