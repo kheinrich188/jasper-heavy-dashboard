@@ -622,16 +622,16 @@ refreshBtn.addEventListener("click", () => {
   loadDashboard().catch((error) => {
     sessionsEl.textContent = error.message;
   });
-
-  if ("serviceWorker" in navigator) {
-    window.addEventListener("load", () => {
-      navigator.serviceWorker.register("/sw.js").catch((error) => {
-        console.error("Service Worker konnte nicht registriert werden:", error);
-      });
-    });
-  }
 });
 
 loadDashboard().catch((error) => {
   sessionsEl.textContent = error.message;
 });
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("sw.js").catch((error) => {
+      console.error("Service Worker konnte nicht registriert werden:", error);
+    });
+  });
+}

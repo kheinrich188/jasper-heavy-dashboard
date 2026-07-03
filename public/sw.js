@@ -1,18 +1,20 @@
 const CACHE_NAME = "jasper-heavy-dashboard-v1";
+const SCOPE_PATH = new URL(self.registration.scope).pathname.replace(/\/$/, "");
+const scoped = (path) => `${SCOPE_PATH}${path}`.replace(/\/{2,}/g, "/");
 const APP_SHELL = [
-  "/",
-  "/index.html",
-  "/site.webmanifest",
-  "/assets/css/styles.css",
-  "/assets/js/app.js",
-  "/assets/icons/android-chrome-192x192.png",
-  "/assets/icons/android-chrome-512x512.png",
-  "/assets/icons/apple-touch-icon.png",
-  "/assets/icons/favicon-32x32.png",
-  "/assets/icons/favicon-16x16.png",
-  "/assets/icons/favicon.ico",
-  "/assets/images/hero-poster.png",
-  "/images/hero-poster.webp",
+  scoped("/"),
+  scoped("/index.html"),
+  scoped("/site.webmanifest"),
+  scoped("/assets/css/styles.css"),
+  scoped("/assets/js/app.js"),
+  scoped("/assets/icons/android-chrome-192x192.png"),
+  scoped("/assets/icons/android-chrome-512x512.png"),
+  scoped("/assets/icons/apple-touch-icon.png"),
+  scoped("/assets/icons/favicon-32x32.png"),
+  scoped("/assets/icons/favicon-16x16.png"),
+  scoped("/assets/icons/favicon.ico"),
+  scoped("/assets/images/hero-poster.png"),
+  scoped("/images/hero-poster.webp"),
 ];
 
 self.addEventListener("install", (event) => {
@@ -41,7 +43,7 @@ self.addEventListener("fetch", (event) => {
 
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
-  if (url.pathname.startsWith("/api/")) return;
+  if (url.pathname.startsWith(scoped("/api/"))) return;
 
   event.respondWith(
     caches.match(request).then((cached) => {

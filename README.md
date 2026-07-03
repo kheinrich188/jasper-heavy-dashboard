@@ -15,6 +15,11 @@ Responsive premium dashboard for the `jasper-heavy` cat wheel telemetry in Influ
    ```
 4. Open `http://localhost:3000`.
 
+For reverse-proxy setups that serve the app under `/dashboard/`, use:
+
+- App UI: `/dashboard/`
+- API: `/api/dashboard`
+
 ## UI Architecture
 
 The dashboard is organized as a fitness-style story flow:

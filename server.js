@@ -424,11 +424,14 @@ app.get("/api/dashboard", async (_req, res) => {
   }
 });
 
-app.get(/^\/dashboard(?:\/.*)?$/, (_req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
-});
+const publicDir = path.join(__dirname, "public");
 
-app.use(express.static(path.join(__dirname, "public")));
+app.use(express.static(publicDir));
+app.use("/dashboard", express.static(publicDir));
+
+app.get(/^\/dashboard\/?$/, (_req, res) => {
+  res.sendFile(path.join(publicDir, "index.html"));
+});
 
 app.listen(PORT, () => {
   console.log(`Cat wheel dashboard running on http://localhost:${PORT}`);
