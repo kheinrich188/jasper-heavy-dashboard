@@ -45,3 +45,34 @@ The dashboard is organized as a fitness-style story flow:
 - Chart.js via CDN
 - Font Awesome Free via CDN
 - Custom CSS design system (dark pastel palette, responsive layout, micro animations)
+- Web App support (Manifest + Service Worker + Mobile/Share Meta Tags)
+
+## PWA & Sharing
+
+- Installable on mobile home screens (manifest + service worker + Apple mobile tags)
+- Social link preview (Open Graph + Twitter card)
+- Background media loading with AV1 (`/videos/hero.av1.webm`) and MP4 fallback (`/videos/hero.mp4`)
+
+## Project Structure
+
+```text
+public/
+  index.html
+  site.webmanifest
+  about.txt
+  images/
+    hero-poster.webp
+  videos/
+    hero.av1.webm
+    hero.mp4
+  assets/
+    css/
+      styles.css
+    js/
+      app.js
+    icons/
+      favicon + app icons
+    images/
+      hero-poster.png (share preview image)
+  sw.js
+```

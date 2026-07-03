@@ -4,28 +4,62 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Jasper Heavy Dashboard</title>
-    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
-    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
-    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+    <meta name="description" content="Jaspers Laufrad – moderne Aktivitätsübersicht mit Distanz, Sessions, Zoomies und Highlights." />
+    <meta name="theme-color" content="#070a10" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Jaspers Laufrad" />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="de_DE" />
+    <meta property="og:title" content="Jaspers Laufrad – Aktivitätsübersicht" />
+    <meta property="og:description" content="Alle Laufdaten auf einen Blick: Distanz, Aktivzeit, Zoomies, Sessions und Highlights." />
+    <meta property="og:image" content="/assets/images/hero-poster.png" />
+    <meta property="og:image:alt" content="Jaspers Laufrad Dashboard Vorschau" />
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:title" content="Jaspers Laufrad – Aktivitätsübersicht" />
+    <meta property="twitter:description" content="Alle Laufdaten auf einen Blick: Distanz, Aktivzeit, Zoomies, Sessions und Highlights." />
+    <meta property="twitter:image" content="/assets/images/hero-poster.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/assets/icons/apple-touch-icon.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/icons/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/assets/icons/favicon-16x16.png" />
+    <link rel="icon" href="/assets/icons/favicon.ico" />
     <link rel="manifest" href="/site.webmanifest" />
-    <link rel="stylesheet" href="/styles.css" />
+    <link rel="stylesheet" href="/assets/css/styles.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3"></script>
   </head>
   <body>
+    <div class="bg-media" aria-hidden="true">
+      <video
+        class="bg-video"
+        autoplay
+        muted
+        loop
+        playsinline
+        preload="metadata"
+        poster="/images/hero-poster.webp"
+      >
+        <source src="/videos/hero.av1.webm" type='video/webm; codecs="av01.0.05M.08"' />
+        <source src="/videos/hero.mp4" type="video/mp4" />
+      </video>
+      <div class="bg-overlay"></div>
+    </div>
     <div class="app">
       <header class="topbar">
-        <div>
-          <h1>Jasper</h1>
+        <div class="topbar-content">
+          <div class="topbar-title-row">
+            <h1>Jasper</h1>
+            <button id="refreshBtn" aria-label="Daten aktualisieren" title="Daten aktualisieren">
+              <i class="fa-solid fa-rotate-right" aria-hidden="true"></i>
+            </button>
+          </div>
           <p class="headline-sub">Aktivitätsübersicht</p>
           <p class="subtitle">
             Alle Laufdaten auf einen Blick für das
             <a href="https://www.elmato.de" target="_blank" rel="noopener noreferrer">Elmato Katzenlaufrad</a>
           </p>
         </div>
-        <button id="refreshBtn" aria-label="Daten aktualisieren" title="Daten aktualisieren">
-          <i class="fa-solid fa-rotate-right" aria-hidden="true"></i>
-        </button>
       </header>
 
       <section class="hero panel" id="heroSection">
@@ -81,6 +115,6 @@
       </section>
     </div>
 
-    <script src="/app.js"></script>
+    <script src="/assets/js/app.js"></script>
   </body>
 </html>
