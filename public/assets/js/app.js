@@ -25,23 +25,27 @@ let selectedPeriod = "today";
 let dashboardData = null;
 
 if (appRootEl) {
+  let hasRevealed = false;
   const triggerAppReveal = () => {
+    if (hasRevealed) return;
     appRootEl.classList.remove("is-revealed");
     // Force a reflow so Safari reliably applies the staged transition.
     void appRootEl.offsetWidth;
     window.setTimeout(() => {
       appRootEl.classList.add("is-revealed");
+      hasRevealed = true;
     }, 60);
   };
 
-  if (document.readyState === "complete") {
-    triggerAppReveal();
-  } else {
-    window.addEventListener("load", triggerAppReveal, { once: true });
-  }
+  // Trigger early (works more reliably on iOS than waiting for window load).
+  window.setTimeout(triggerAppReveal, 20);
+
+  document.addEventListener("DOMContentLoaded", triggerAppReveal, { once: true });
+  window.addEventListener("load", triggerAppReveal, { once: true });
 
   window.addEventListener("pageshow", (event) => {
     if (event.persisted) {
+      hasRevealed = false;
       triggerAppReveal();
     }
   });
