@@ -1,4 +1,4 @@
-const CACHE_NAME = "jasper-heavy-dashboard-v1";
+const CACHE_NAME = "jasper-heavy-dashboard-v2";
 const SCOPE_PATH = new URL(self.registration.scope).pathname.replace(/\/$/, "");
 const scoped = (path) => `${SCOPE_PATH}${path}`.replace(/\/{2,}/g, "/");
 const APP_SHELL = [
@@ -45,16 +45,31 @@ self.addEventListener("fetch", (event) => {
   if (url.origin !== self.location.origin) return;
   if (url.pathname.startsWith(scoped("/api/"))) return;
 
+  const isLiveCriticalAsset =
+    request.destination === "document" ||
+    request.destination === "script" ||
+    request.destination === "style";
+
+  if (isLiveCriticalAsset) {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          if (response.ok) {
+            const responseClone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, responseClone));
+          }
+          return response;
+        })
+        .catch(() => caches.match(request))
+    );
+    return;
+  }
+
   event.respondWith(
     caches.match(request).then((cached) => {
       if (cached) return cached;
       return fetch(request).then((response) => {
-        const isCacheableDestination =
-          request.destination === "script" ||
-          request.destination === "style" ||
-          request.destination === "document" ||
-          request.destination === "image";
-        const isCacheable = response.ok && isCacheableDestination;
+        const isCacheable = response.ok && request.destination === "image";
         if (isCacheable) {
           const responseClone = response.clone();
           caches.open(CACHE_NAME).then((cache) => cache.put(request, responseClone));
