@@ -25,10 +25,25 @@ let selectedPeriod = "today";
 let dashboardData = null;
 
 if (appRootEl) {
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
+  const triggerAppReveal = () => {
+    appRootEl.classList.remove("is-revealed");
+    // Force a reflow so Safari reliably applies the staged transition.
+    void appRootEl.offsetWidth;
+    window.setTimeout(() => {
       appRootEl.classList.add("is-revealed");
-    });
+    }, 60);
+  };
+
+  if (document.readyState === "complete") {
+    triggerAppReveal();
+  } else {
+    window.addEventListener("load", triggerAppReveal, { once: true });
+  }
+
+  window.addEventListener("pageshow", (event) => {
+    if (event.persisted) {
+      triggerAppReveal();
+    }
   });
 }
 

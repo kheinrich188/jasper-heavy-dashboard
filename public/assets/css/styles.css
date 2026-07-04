@@ -66,47 +66,50 @@ body {
 
 .js .app > * {
   opacity: 0;
-  transform: translateY(18px);
+  transform: translate3d(0, 18px, 0);
+  will-change: opacity, transform;
+  transition: opacity 560ms ease-out, transform 560ms ease-out;
 }
 
 .js .app.is-revealed > * {
-  animation: sectionReveal 560ms ease-out forwards;
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
 }
 
 .js .app.is-revealed > *:nth-child(1) {
-  animation-delay: 160ms;
+  transition-delay: 160ms;
 }
 
 .js .app.is-revealed > *:nth-child(2) {
-  animation-delay: 220ms;
+  transition-delay: 220ms;
 }
 
 .js .app.is-revealed > *:nth-child(3) {
-  animation-delay: 280ms;
+  transition-delay: 280ms;
 }
 
 .js .app.is-revealed > *:nth-child(4) {
-  animation-delay: 340ms;
+  transition-delay: 340ms;
 }
 
 .js .app.is-revealed > *:nth-child(5) {
-  animation-delay: 400ms;
+  transition-delay: 400ms;
 }
 
 .js .app.is-revealed > *:nth-child(6) {
-  animation-delay: 460ms;
+  transition-delay: 460ms;
 }
 
 .js .app.is-revealed > *:nth-child(7) {
-  animation-delay: 520ms;
+  transition-delay: 520ms;
 }
 
 .js .app.is-revealed > *:nth-child(8) {
-  animation-delay: 580ms;
+  transition-delay: 580ms;
 }
 
 .js .app.is-revealed > *:nth-child(9) {
-  animation-delay: 640ms;
+  transition-delay: 640ms;
 }
 
 .topbar {
@@ -942,13 +945,6 @@ canvas {
   }
 }
 
-@keyframes sectionReveal {
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
 .multi-ring.ring-refresh .ring-distance {
   animation: ringPulse 0.9s ease-out 0ms;
 }
@@ -987,6 +983,6 @@ canvas {
   .js .app > * {
     opacity: 1;
     transform: none;
-    animation: none;
+    transition: none;
   }
 }
