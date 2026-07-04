@@ -64,45 +64,48 @@ body {
   gap: 28px;
 }
 
-.app > * {
+.js .app > * {
   opacity: 0;
   transform: translateY(18px);
+}
+
+.js .app.is-revealed > * {
   animation: sectionReveal 560ms ease-out forwards;
 }
 
-.app > *:nth-child(1) {
+.js .app.is-revealed > *:nth-child(1) {
   animation-delay: 160ms;
 }
 
-.app > *:nth-child(2) {
+.js .app.is-revealed > *:nth-child(2) {
   animation-delay: 220ms;
 }
 
-.app > *:nth-child(3) {
+.js .app.is-revealed > *:nth-child(3) {
   animation-delay: 280ms;
 }
 
-.app > *:nth-child(4) {
+.js .app.is-revealed > *:nth-child(4) {
   animation-delay: 340ms;
 }
 
-.app > *:nth-child(5) {
+.js .app.is-revealed > *:nth-child(5) {
   animation-delay: 400ms;
 }
 
-.app > *:nth-child(6) {
+.js .app.is-revealed > *:nth-child(6) {
   animation-delay: 460ms;
 }
 
-.app > *:nth-child(7) {
+.js .app.is-revealed > *:nth-child(7) {
   animation-delay: 520ms;
 }
 
-.app > *:nth-child(8) {
+.js .app.is-revealed > *:nth-child(8) {
   animation-delay: 580ms;
 }
 
-.app > *:nth-child(9) {
+.js .app.is-revealed > *:nth-child(9) {
   animation-delay: 640ms;
 }
 
@@ -981,7 +984,7 @@ canvas {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .app > * {
+  .js .app > * {
     opacity: 1;
     transform: none;
     animation: none;

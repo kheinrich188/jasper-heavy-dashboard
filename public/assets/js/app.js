@@ -6,6 +6,7 @@ const periodSelectorEl = document.getElementById("periodSelector");
 const periodSummaryEl = document.getElementById("periodSummary");
 const monthlyReportEl = document.getElementById("monthlyReport");
 const chartWrapEls = Array.from(document.querySelectorAll(".chart-wrap"));
+const appRootEl = document.querySelector(".app");
 
 const chartRefs = {};
 const numberFormatter = new Intl.NumberFormat("de-DE", { maximumFractionDigits: 1 });
@@ -22,6 +23,14 @@ const periodLabels = {
 
 let selectedPeriod = "today";
 let dashboardData = null;
+
+if (appRootEl) {
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      appRootEl.classList.add("is-revealed");
+    });
+  });
+}
 
 function fmt(value, unit = "") {
   return `${numberFormatter.format(Number(value || 0))}${unit}`;
