@@ -499,14 +499,19 @@ function upsertChart(id, config) {
 }
 
 function buildCharts(series) {
+  const telemetrySeries = series.telemetrySeries || [];
+  const dailyOverviewSeries = series.dailyOverviewSeries || [];
+  const sessionTrendSeries = series.sessionTrendSeries || [];
+  const inactivitySeries = series.inactivitySeries || [];
+
   upsertChart("speedChart", {
     type: "line",
     data: {
-      labels: series.speedSeries.map((p) => timeLabel(p.time)),
+      labels: telemetrySeries.map((p) => timeLabel(p.time)),
       datasets: [
         {
-          label: "km/h",
-          data: series.speedSeries.map((p) => p.value),
+          label: "Speed (km/h)",
+          data: telemetrySeries.map((p) => p.speedKmh || 0),
           borderColor: "#A7D2FF",
           backgroundColor: (ctx) => gradientFill(ctx, "rgba(167, 210, 255, 0.32)"),
           fill: true,
@@ -514,41 +519,104 @@ function buildCharts(series) {
           borderWidth: 3,
           pointRadius: 0,
           pointHoverRadius: 2,
+          yAxisID: "ySpeed",
+        },
+        {
+          label: "RPM",
+          data: telemetrySeries.map((p) => p.rpm || 0),
+          borderColor: "#EAC7FF",
+          backgroundColor: "rgba(234, 199, 255, 0.15)",
+          fill: false,
+          tension: 0.3,
+          borderWidth: 2,
+          pointRadius: 0,
+          pointHoverRadius: 2,
+          yAxisID: "yRpm",
         },
       ],
     },
-    options: { scales: { x: { ticks: { maxTicksLimit: 8 } } } },
+    options: {
+      scales: {
+        x: { ticks: { maxTicksLimit: 8 } },
+        ySpeed: {
+          type: "linear",
+          position: "left",
+          ticks: { color: "#A7D2FF" },
+          grid: { color: "rgba(255,255,255,0.04)", drawBorder: false },
+          border: { display: false },
+        },
+        yRpm: {
+          type: "linear",
+          position: "right",
+          ticks: { color: "#EAC7FF" },
+          grid: { drawOnChartArea: false },
+          border: { display: false },
+        },
+      },
+    },
   });
 
-  const distanceValuesMeters = series.distanceSeries.map((p) => p.value);
+  const distanceValuesMeters = dailyOverviewSeries.map((p) => p.distanceM || 0);
   const useKilometers = Math.max(...distanceValuesMeters, 0) >= 1000;
   const divisor = useKilometers ? 1000 : 1;
   upsertChart("distanceChart", {
-    type: "bar",
+    type: "line",
     data: {
-      labels: series.distanceSeries.map((p) => dayLabel(p.day)),
+      labels: dailyOverviewSeries.map((p) => dayLabel(p.day)),
       datasets: [
         {
-          label: useKilometers ? "Kilometer" : "Meter",
+          label: useKilometers ? "Distanz (km)" : "Distanz (m)",
           data: distanceValuesMeters.map((v) => v / divisor),
-          backgroundColor: "rgba(158, 216, 181, 0.52)",
           borderColor: "rgba(158, 216, 181, 0.92)",
+          backgroundColor: (ctx) => gradientFill(ctx, "rgba(158, 216, 181, 0.25)"),
+          fill: true,
+          tension: 0.25,
+          borderWidth: 2.5,
+          pointRadius: 0,
+          pointHoverRadius: 2,
+          yAxisID: "yDistance",
+        },
+        {
+          label: "Rotationen",
+          data: dailyOverviewSeries.map((p) => p.rotations || 0),
+          borderColor: "rgba(167, 210, 255, 0.95)",
+          backgroundColor: "rgba(167, 210, 255, 0.35)",
           borderWidth: 1,
-          borderRadius: 10,
+          borderRadius: 8,
           borderSkipped: false,
+          type: "bar",
+          yAxisID: "yRotations",
         },
       ],
+    },
+    options: {
+      scales: {
+        yDistance: {
+          type: "linear",
+          position: "left",
+          ticks: { color: "#BDEBCD" },
+          grid: { color: "rgba(255,255,255,0.04)", drawBorder: false },
+          border: { display: false },
+        },
+        yRotations: {
+          type: "linear",
+          position: "right",
+          ticks: { color: "#CFE5FF" },
+          grid: { drawOnChartArea: false },
+          border: { display: false },
+        },
+      },
     },
   });
 
   upsertChart("zoomiesChart", {
     type: "line",
     data: {
-      labels: series.zoomiesSeries.map((p) => dayLabel(p.day)),
+      labels: dailyOverviewSeries.map((p) => dayLabel(p.day)),
       datasets: [
         {
           label: "Zoomies",
-          data: series.zoomiesSeries.map((p) => p.value),
+          data: dailyOverviewSeries.map((p) => p.zoomies || 0),
           borderColor: "#F6C8A9",
           backgroundColor: (ctx) => gradientFill(ctx, "rgba(246, 200, 169, 0.25)"),
           fill: true,
@@ -556,8 +624,39 @@ function buildCharts(series) {
           borderWidth: 3,
           pointRadius: 0,
           pointHoverRadius: 2,
+          yAxisID: "yZoomies",
+        },
+        {
+          label: "Zoomies Index",
+          data: dailyOverviewSeries.map((p) => p.zoomiesIndex || 0),
+          borderColor: "#FFD88E",
+          backgroundColor: "rgba(255, 216, 142, 0.2)",
+          fill: false,
+          tension: 0.25,
+          borderWidth: 2,
+          pointRadius: 0,
+          pointHoverRadius: 2,
+          yAxisID: "yIndex",
         },
       ],
+    },
+    options: {
+      scales: {
+        yZoomies: {
+          type: "linear",
+          position: "left",
+          ticks: { color: "#F6C8A9" },
+          grid: { color: "rgba(255,255,255,0.04)", drawBorder: false },
+          border: { display: false },
+        },
+        yIndex: {
+          type: "linear",
+          position: "right",
+          ticks: { color: "#FFE6A8" },
+          grid: { drawOnChartArea: false },
+          border: { display: false },
+        },
+      },
     },
   });
 
@@ -583,6 +682,125 @@ function buildCharts(series) {
     },
     options: { scales: { x: { ticks: { maxTicksLimit: 6 } } } },
   });
+
+  upsertChart("sessionChart", {
+    type: "bar",
+    data: {
+      labels: sessionTrendSeries.map((s) => new Date(s.time).toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit" })),
+      datasets: [
+        {
+          label: "Distanz (m)",
+          data: sessionTrendSeries.map((s) => s.distanceM || 0),
+          backgroundColor: "rgba(180, 221, 202, 0.5)",
+          borderColor: "rgba(180, 221, 202, 0.9)",
+          borderWidth: 1,
+          borderRadius: 8,
+          borderSkipped: false,
+          yAxisID: "yDistance",
+        },
+        {
+          label: "Max Speed (km/h)",
+          data: sessionTrendSeries.map((s) => s.maxKmh || 0),
+          borderColor: "rgba(167, 210, 255, 0.95)",
+          backgroundColor: "rgba(167, 210, 255, 0.16)",
+          type: "line",
+          fill: false,
+          tension: 0.25,
+          borderWidth: 2,
+          pointRadius: 0,
+          pointHoverRadius: 2,
+          yAxisID: "ySpeed",
+        },
+      ],
+    },
+    options: {
+      scales: {
+        x: { ticks: { maxTicksLimit: 10 } },
+        yDistance: {
+          type: "linear",
+          position: "left",
+          ticks: { color: "#CDEFD9" },
+          grid: { color: "rgba(255,255,255,0.04)", drawBorder: false },
+          border: { display: false },
+        },
+        ySpeed: {
+          type: "linear",
+          position: "right",
+          ticks: { color: "#CFE6FF" },
+          grid: { drawOnChartArea: false },
+          border: { display: false },
+        },
+      },
+    },
+  });
+
+  upsertChart("inactivityChart", {
+    type: "line",
+    data: {
+      labels: inactivitySeries.map((p) => timeLabel(p.time)),
+      datasets: [
+        {
+          label: "Inaktivität (min)",
+          data: inactivitySeries.map((p) => (p.inactivityDurationS || 0) / 60),
+          borderColor: "#BFC8D6",
+          backgroundColor: (ctx) => gradientFill(ctx, "rgba(191, 200, 214, 0.2)"),
+          fill: true,
+          tension: 0.25,
+          borderWidth: 2.5,
+          pointRadius: 0,
+          pointHoverRadius: 2,
+          yAxisID: "yInactivity",
+        },
+        {
+          label: "Heartbeat",
+          data: inactivitySeries.map((p) => p.heartbeat || 0),
+          borderColor: "#B4DDCA",
+          backgroundColor: "rgba(180, 221, 202, 0.2)",
+          fill: false,
+          tension: 0.2,
+          borderWidth: 1.5,
+          pointRadius: 0,
+          pointHoverRadius: 2,
+          stepped: true,
+          yAxisID: "yBinary",
+        },
+        {
+          label: "Warnung",
+          data: inactivitySeries.map((p) => p.warning || 0),
+          borderColor: "#F6C8A9",
+          backgroundColor: "rgba(246, 200, 169, 0.2)",
+          fill: false,
+          tension: 0,
+          borderWidth: 1.5,
+          pointRadius: 0,
+          pointHoverRadius: 2,
+          stepped: true,
+          yAxisID: "yBinary",
+        },
+      ],
+    },
+    options: {
+      scales: {
+        x: { ticks: { maxTicksLimit: 8 } },
+        yInactivity: {
+          type: "linear",
+          position: "left",
+          ticks: { color: "#D6DEE8" },
+          grid: { color: "rgba(255,255,255,0.04)", drawBorder: false },
+          border: { display: false },
+        },
+        yBinary: {
+          type: "linear",
+          position: "right",
+          min: 0,
+          max: 1,
+          ticks: { stepSize: 1, color: "#D7E3D8" },
+          grid: { drawOnChartArea: false },
+          border: { display: false },
+        },
+      },
+    },
+  });
 }
 
 function buildSessions(sessions) {
@@ -606,7 +824,9 @@ function buildSessions(sessions) {
               </div>
               <div class="session-distance">${formatDistance(s.distanceM)}</div>
               <div class="session-metric"><span class="session-label">Dauer</span> <span class="session-value">${formatDuration(s.durationS)}</span></div>
+              <div class="session-metric"><span class="session-label">Rotationen</span> <span class="session-value">${fmt(s.rotations)}</span></div>
               <div class="session-metric"><span class="session-label">Ø</span> <span class="session-value">${fmt(avgKmh, " km/h")}</span> <span class="session-sep">·</span> <span class="session-label">Max</span> <span class="session-value">${fmt(s.maxKmh, " km/h")}</span></div>
+              <div class="session-metric"><span class="session-label">Zoomies</span> <span class="session-value">${fmt(s.zoomies)}</span> <span class="session-sep">·</span> <span class="session-label">Score</span> <span class="session-value">${fmt(s.zoomiesScore)}</span></div>
               <div class="session-divider"></div>
               <div class="session-badge ${status.className}">${status.text}</div>
               <div class="session-progress"><span style="width:${speedPercent}%"></span></div>

@@ -77,7 +77,7 @@
 
       <section class="charts">
         <article class="panel chart-panel chart-main">
-          <h2>Tempo-Spitzen der letzten 24h (km/h)</h2>
+          <h2>Speed & RPM (letzte 24h)</h2>
           <div class="chart-wrap chart-wrap-main">
             <canvas id="speedChart"></canvas>
           </div>
@@ -88,16 +88,28 @@
             <canvas id="hourChart"></canvas>
           </div>
         </article>
-        <article class="panel chart-panel">
-          <h2>Tagesdistanz (letzte 30 Tage)</h2>
+        <article class="panel chart-panel chart-distance">
+          <h2>Tagesdistanz & Rotationen (30 Tage)</h2>
           <div class="chart-wrap chart-wrap-small">
             <canvas id="distanceChart"></canvas>
           </div>
         </article>
-        <article class="panel chart-panel">
-          <h2>Zoomies pro Tag</h2>
+        <article class="panel chart-panel chart-zoomies">
+          <h2>Zoomies & Zoomies Index</h2>
           <div class="chart-wrap chart-wrap-small">
             <canvas id="zoomiesChart"></canvas>
+          </div>
+        </article>
+        <article class="panel chart-panel chart-sessions">
+          <h2>Session-Trend (Distanz vs Max Speed)</h2>
+          <div class="chart-wrap chart-wrap-small">
+            <canvas id="sessionChart"></canvas>
+          </div>
+        </article>
+        <article class="panel chart-panel chart-inactivity">
+          <h2>Inaktivität, Heartbeat & Warnung (48h)</h2>
+          <div class="chart-wrap chart-wrap-small">
+            <canvas id="inactivityChart"></canvas>
           </div>
         </article>
       </section>

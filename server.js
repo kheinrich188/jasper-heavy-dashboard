@@ -53,6 +53,19 @@ async function runRowsQuery(query) {
   return queryApi.collectRows(query);
 }
 
+function mergeSeriesRows(rowsByField, keyName = "time") {
+  const byTime = new Map();
+  rowsByField.forEach(({ field, rows }) => {
+    rows.forEach((row) => {
+      const key = row[keyName];
+      if (!key) return;
+      if (!byTime.has(key)) byTime.set(key, { [keyName]: key });
+      byTime.get(key)[field] = parseNum(row.value);
+    });
+  });
+  return Array.from(byTime.values()).sort((a, b) => new Date(a[keyName]).getTime() - new Date(b[keyName]).getTime());
+}
+
 function startOfDay(date) {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate());
 }
@@ -157,10 +170,10 @@ from(bucket: "${influxConfig.bucket}")
   ${fluxRange(start, stop)}
   |> filter(fn: (r) => r._measurement == "cat_wheel")
   ${tagFilter}
-  |> filter(fn: (r) => r._field == "session_ended" or r._field == "session_id" or r._field == "session_duration_s" or r._field == "session_distance_m" or r._field == "session_max_kmh" or r._field == "session_rotations" or r._field == "zoomies")
+  |> filter(fn: (r) => r._field == "session_ended" or r._field == "session_id" or r._field == "session_duration_s" or r._field == "session_distance_m" or r._field == "session_max_kmh" or r._field == "session_rotations" or r._field == "zoomies" or r._field == "zoomies_score")
   |> pivot(rowKey:["_time"], columnKey:["_field"], valueColumn:"_value")
   |> filter(fn: (r) => exists r.session_ended and r.session_ended == 1)
-  |> keep(columns: ["_time", "session_id", "session_duration_s", "session_distance_m", "session_max_kmh", "session_rotations", "zoomies"])
+  |> keep(columns: ["_time", "session_id", "session_duration_s", "session_distance_m", "session_max_kmh", "session_rotations", "zoomies", "zoomies_score"])
   |> sort(columns: ["_time"], desc: true)
   ${limitPart}
 `;
@@ -173,6 +186,7 @@ from(bucket: "${influxConfig.bucket}")
     maxKmh: parseNum(r.session_max_kmh),
     rotations: parseNum(r.session_rotations),
     zoomies: parseNum(r.zoomies),
+    zoomiesScore: parseNum(r.zoomies_score),
   }));
 }
 
@@ -289,39 +303,104 @@ from(bucket: "${influxConfig.bucket}")
   }));
 }
 
-async function fetchDailyDistanceSeries() {
+async function fetchFieldWindowSeries({ start, stop, field, every, fn = "max" }) {
   const query = `
 from(bucket: "${influxConfig.bucket}")
-  |> range(start: -30d)
+  ${fluxRange(start, stop)}
   |> filter(fn: (r) => r._measurement == "cat_wheel")
   ${tagFilter}
-  |> filter(fn: (r) => r._field == "daily_distance_m")
-  |> aggregateWindow(every: 1d, fn: max, createEmpty: false)
+  |> filter(fn: (r) => r._field == "${field}")
+  |> aggregateWindow(every: ${every}, fn: ${fn}, createEmpty: false)
   |> keep(columns: ["_time", "_value"])
   |> sort(columns: ["_time"], desc: false)
 `;
   const rows = await runRowsQuery(query);
   return rows.map((r) => ({
-    day: r._time,
+    time: r._time,
     value: parseNum(r._value),
   }));
 }
 
-async function fetchZoomiesSeries() {
+async function fetchDailyOverviewSeries() {
   const query = `
 from(bucket: "${influxConfig.bucket}")
   |> range(start: -30d)
   |> filter(fn: (r) => r._measurement == "cat_wheel")
   ${tagFilter}
-  |> filter(fn: (r) => r._field == "daily_zoomies")
+  |> filter(fn: (r) => r._field == "daily_distance_m" or r._field == "daily_rotations" or r._field == "daily_zoomies" or r._field == "daily_zoomies_index")
   |> aggregateWindow(every: 1d, fn: max, createEmpty: false)
-  |> keep(columns: ["_time", "_value"])
+  |> pivot(rowKey:["_time"], columnKey:["_field"], valueColumn:"_value")
+  |> keep(columns: ["_time", "daily_distance_m", "daily_rotations", "daily_zoomies", "daily_zoomies_index"])
   |> sort(columns: ["_time"], desc: false)
 `;
   const rows = await runRowsQuery(query);
   return rows.map((r) => ({
     day: r._time,
-    value: parseNum(r._value),
+    distanceM: parseNum(r.daily_distance_m),
+    rotations: parseNum(r.daily_rotations),
+    zoomies: parseNum(r.daily_zoomies),
+    zoomiesIndex: parseNum(r.daily_zoomies_index),
+  }));
+}
+
+async function fetchTelemetrySeries() {
+  const now = new Date();
+  const start = new Date(now.getTime() - 1000 * 60 * 60 * 24);
+  const [speedRows, rpmRows, pulseRows, rotationRows] = await Promise.all([
+    fetchFieldWindowSeries({ start, stop: now, field: "speed_kmh", every: "10m", fn: "max" }),
+    fetchFieldWindowSeries({ start, stop: now, field: "rpm", every: "10m", fn: "max" }),
+    fetchFieldWindowSeries({ start, stop: now, field: "pulses", every: "10m", fn: "sum" }),
+    fetchFieldWindowSeries({ start, stop: now, field: "rotations", every: "10m", fn: "sum" }),
+  ]);
+  return mergeSeriesRows([
+    { field: "speedKmh", rows: speedRows },
+    { field: "rpm", rows: rpmRows },
+    { field: "pulses", rows: pulseRows },
+    { field: "rotations", rows: rotationRows },
+  ]);
+}
+
+async function fetchInactivitySeries() {
+  const now = new Date();
+  const start = new Date(now.getTime() - 1000 * 60 * 60 * 48);
+  const [durationRows, heartbeatRows, warningRows, sessionActiveRows] = await Promise.all([
+    fetchFieldWindowSeries({ start, stop: now, field: "inactivity_duration_s", every: "30m", fn: "max" }),
+    fetchFieldWindowSeries({ start, stop: now, field: "heartbeat", every: "30m", fn: "max" }),
+    fetchFieldWindowSeries({ start, stop: now, field: "inactivity_warning", every: "30m", fn: "max" }),
+    fetchFieldWindowSeries({ start, stop: now, field: "session_active", every: "30m", fn: "max" }),
+  ]);
+  return mergeSeriesRows([
+    { field: "inactivityDurationS", rows: durationRows },
+    { field: "heartbeat", rows: heartbeatRows },
+    { field: "warning", rows: warningRows },
+    { field: "sessionActive", rows: sessionActiveRows },
+  ]);
+}
+
+async function fetchSessionTrend(limit = 20) {
+  const query = `
+from(bucket: "${influxConfig.bucket}")
+  |> range(start: -60d)
+  |> filter(fn: (r) => r._measurement == "cat_wheel")
+  ${tagFilter}
+  |> filter(fn: (r) => r._field == "session_ended" or r._field == "session_id" or r._field == "session_duration_s" or r._field == "session_distance_m" or r._field == "session_max_kmh" or r._field == "session_rotations" or r._field == "zoomies" or r._field == "zoomies_score")
+  |> pivot(rowKey:["_time"], columnKey:["_field"], valueColumn:"_value")
+  |> filter(fn: (r) => exists r.session_ended and r.session_ended == 1)
+  |> keep(columns: ["_time", "session_id", "session_duration_s", "session_distance_m", "session_max_kmh", "session_rotations", "zoomies", "zoomies_score"])
+  |> sort(columns: ["_time"], desc: true)
+  |> limit(n: ${Math.max(4, Math.floor(limit))})
+  |> sort(columns: ["_time"], desc: false)
+`;
+  const rows = await runRowsQuery(query);
+  return rows.map((r) => ({
+    time: r._time,
+    sessionId: String(r.session_id || ""),
+    durationS: parseNum(r.session_duration_s),
+    distanceM: parseNum(r.session_distance_m),
+    maxKmh: parseNum(r.session_max_kmh),
+    rotations: parseNum(r.session_rotations),
+    zoomies: parseNum(r.zoomies),
+    zoomiesScore: parseNum(r.zoomies_score),
   }));
 }
 
@@ -381,12 +460,29 @@ app.get("/api/dashboard", async (_req, res) => {
 
   try {
     const ranges = getPeriodRanges();
-    const [inactivitySeconds, speedSeries, distanceSeries, zoomiesSeries, activityByHour, recentSessions, periodToday, periodYesterday, periodWeek, periodMonth, periodTotal, lastMonthReport] =
+    const [
+      inactivitySeconds,
+      speedSeries,
+      telemetrySeries,
+      dailyOverviewSeries,
+      inactivitySeries,
+      sessionTrendSeries,
+      activityByHour,
+      recentSessions,
+      periodToday,
+      periodYesterday,
+      periodWeek,
+      periodMonth,
+      periodTotal,
+      lastMonthReport,
+    ] =
       await Promise.all([
         fetchLastInactivitySeconds(),
         fetchSpeedSeries(),
-        fetchDailyDistanceSeries(),
-        fetchZoomiesSeries(),
+        fetchTelemetrySeries(),
+        fetchDailyOverviewSeries(),
+        fetchInactivitySeries(),
+        fetchSessionTrend(20),
         fetchActivityByHour(),
         fetchSessionsInRange(new Date(Date.now() - 1000 * 60 * 60 * 24 * 30), new Date(), 8),
         fetchPeriodKpis(ranges.today.start, ranges.today.stop),
@@ -409,8 +505,10 @@ app.get("/api/dashboard", async (_req, res) => {
       inactivitySeconds,
       series: {
         speedSeries,
-        distanceSeries,
-        zoomiesSeries,
+        telemetrySeries,
+        dailyOverviewSeries,
+        inactivitySeries,
+        sessionTrendSeries,
         activityByHour,
       },
       recentSessions,

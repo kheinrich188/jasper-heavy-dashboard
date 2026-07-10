@@ -303,22 +303,34 @@ button.is-loading::after {
   position: absolute;
   inset: 0;
   border-radius: 50%;
+  --w: 13px;
+  --ring-track: rgba(181, 191, 204, 0.28);
   --a: calc(var(--p) * 3.6deg);
   transform-origin: center center;
+  -webkit-mask: radial-gradient(
+    farthest-side,
+    transparent calc(100% - var(--w) - 0.5px),
+    #000 calc(100% - var(--w) + 0.5px)
+  );
+  mask: radial-gradient(
+    farthest-side,
+    transparent calc(100% - var(--w) - 0.5px),
+    #000 calc(100% - var(--w) + 0.5px)
+  );
 }
 
 .ring-distance {
-  background: conic-gradient(var(--mint) var(--a), rgba(255, 255, 255, 0.08) 0deg);
+  background: conic-gradient(var(--mint) 0deg var(--a), var(--ring-track) var(--a) 360deg);
 }
 
 .ring-activity {
   inset: 12px;
-  background: conic-gradient(var(--sky) var(--a), rgba(255, 255, 255, 0.08) 0deg);
+  background: conic-gradient(var(--sky) 0deg var(--a), var(--ring-track) var(--a) 360deg);
 }
 
 .ring-sessions {
   inset: 24px;
-  background: conic-gradient(var(--lavender) var(--a), rgba(255, 255, 255, 0.08) 0deg);
+  background: conic-gradient(var(--lavender) 0deg var(--a), var(--ring-track) var(--a) 360deg);
 }
 
 .ring-center {
@@ -472,7 +484,8 @@ button.is-loading::after {
   grid-template-columns: 2fr 1fr;
   grid-template-areas:
     "main hours"
-    "distance zoomies";
+    "distance zoomies"
+    "sessions inactivity";
   gap: 20px;
 }
 
@@ -484,12 +497,20 @@ button.is-loading::after {
   grid-area: hours;
 }
 
-.charts > .chart-panel:nth-child(3) {
+.chart-distance {
   grid-area: distance;
 }
 
-.charts > .chart-panel:nth-child(4) {
+.chart-zoomies {
   grid-area: zoomies;
+}
+
+.chart-sessions {
+  grid-area: sessions;
+}
+
+.chart-inactivity {
+  grid-area: inactivity;
 }
 
 .chart-wrap {
@@ -850,7 +871,9 @@ canvas {
       "main"
       "hours"
       "distance"
-      "zoomies";
+      "zoomies"
+      "sessions"
+      "inactivity";
   }
 
   .period-cards {
